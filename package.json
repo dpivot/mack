@@ -1,8 +1,8 @@
 {
-  "name": "@tryfabric/mack",
+  "name": "@attive/mack",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tryfabric/mack.git"
+    "url": "https://github.com/dpivot/mack.git"
   },
   "version": "1.2.1",
   "description": "Converts Markdown to Slack BlockKit Blocks",
@@ -25,7 +25,7 @@
     "gfm",
     "slack"
   ],
-  "author": "Instantish",
+  "author": "Attive",
   "license": "MIT",
   "dependencies": {
     "@slack/types": "^2.1.0",
