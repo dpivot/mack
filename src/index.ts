@@ -32,7 +32,17 @@ export async function markdownToBlocks(
     '>': '&gt;',
   };
 
-  const lexer = new marked.Lexer();
+  // Disable marked's default HTML encoding behavior
+  const markedOptions: marked.MarkedOptions = {
+    pedantic: false,
+    gfm: true,
+    breaks: false,
+    sanitize: false,
+    smartypants: false,
+    xhtml: false,
+  };
+
+  const lexer = new marked.Lexer(markedOptions);
   lexer.options.tokenizer = new marked.Tokenizer();
   lexer.options.tokenizer.inlineText = src => {
     const text = src.replace(/[&<>]/g, char => {
@@ -48,5 +58,58 @@ export async function markdownToBlocks(
 
   const tokens = lexer.lex(body);
 
-  return parseBlocks(tokens, options);
+  const blocks = parseBlocks(tokens, options);
+
+  // Decode HTML entities that shouldn't be encoded for Slack
+  return decodeBlockEntities(blocks);
+}
+
+// Decode HTML entities that marked incorrectly encodes
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&#x2F;/g, '/')
+    .replace(/&#96;/g, '`');
+  // Note: We don't decode &amp;, &lt;, &gt; as those should remain encoded for Slack
+}
+
+// Recursively decode HTML entities in Slack blocks
+function decodeBlockEntities(blocks: KnownBlock[]): KnownBlock[] {
+  return blocks.map(block => {
+    // Create a shallow copy to avoid mutating the original
+    const decoded: KnownBlock = {...block};
+
+    // Decode text in section blocks
+    if (decoded.type === 'section' && decoded.text?.text) {
+      decoded.text = {
+        ...decoded.text,
+        text: decodeHtmlEntities(decoded.text.text),
+      };
+    }
+
+    // Decode text in header blocks
+    if (decoded.type === 'header' && decoded.text?.text) {
+      decoded.text = {
+        ...decoded.text,
+        text: decodeHtmlEntities(decoded.text.text),
+      };
+    }
+
+    // Decode text in fields (for section blocks)
+    if (decoded.type === 'section' && decoded.fields) {
+      decoded.fields = decoded.fields.map(field => {
+        if (typeof field === 'object' && field.text) {
+          return {
+            ...field,
+            text: decodeHtmlEntities(field.text),
+          };
+        }
+        return field;
+      });
+    }
+
+    return decoded;
+  });
 }

@@ -132,4 +132,25 @@ if (a === 'hi') {
     const expected = [slack.section('&lt;&gt;&amp;\'""\'&amp;&gt;&lt;')];
     expect(actual).toStrictEqual(expected);
   });
+
+  it('should handle apostrophes correctly without HTML encoding', async () => {
+    const text = `The 'thing' in the 'dark', it's a blur,
+A whisper, a 'sigh', a soft purr.
+Don't ask what it's 'seen', or where it's been,
+Just the 'echo' of 'what's' within.
+Its 'eyes', like two 'stars', gleam so bright,
+A 'mystery' 'neath' the 'moon's' pale light.`;
+
+    const actual = await markdownToBlocks(text);
+    const expected = [
+      slack.section(`The 'thing' in the 'dark', it's a blur,
+A whisper, a 'sigh', a soft purr.
+Don't ask what it's 'seen', or where it's been,
+Just the 'echo' of 'what's' within.
+Its 'eyes', like two 'stars', gleam so bright,
+A 'mystery' 'neath' the 'moon's' pale light.`),
+    ];
+
+    expect(actual).toStrictEqual(expected);
+  });
 });
