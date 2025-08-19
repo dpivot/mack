@@ -52,10 +52,10 @@ a **b** _c_ **_d_ e**
       slack.section('• checkbox false\n• checkbox true'),
       slack.section(
         '```\n' +
-          '| Syntax | Description |\n' +
-          '| --- | --- |\n' +
-          '| Header | Title |\n' +
-          '| Paragraph | Text |\n' +
+          'Syntax     Description\n' +
+          '---------  -----------\n' +
+          'Header     Title\n' +
+          'Paragraph  Text\n' +
           '```'
       ),
     ];
@@ -169,5 +169,127 @@ It's important that contractions work`),
     ];
 
     expect(actual).toStrictEqual(expected);
+  });
+
+  describe('ASCII tables', () => {
+    it('should format tables with varying column widths', async () => {
+      const text = `
+| Short | Medium Column | Very Long Column Name |
+| ----- | ------------- | --------------------- |
+| A     | Some text     | This is a longer text |
+| B     | More content  | Another long entry    |
+`;
+
+      const actual = await markdownToBlocks(text);
+
+      const expected = [
+        slack.section(
+          '```\n' +
+            'Short  Medium Column  Very Long Column Name\n' +
+            '-----  -------------  ---------------------\n' +
+            'A      Some text      This is a longer text\n' +
+            'B      More content   Another long entry\n' +
+            '```'
+        ),
+      ];
+
+      expect(actual).toStrictEqual(expected);
+    });
+
+    it('should handle tables with inline formatting', async () => {
+      const text = `
+| Column | **Bold** | _Italic_ |
+| ------ | -------- | -------- |
+| Row 1  | **text** | _text_   |
+| Row 2  | normal   | \`code\`   |
+`;
+
+      const actual = await markdownToBlocks(text);
+
+      const expected = [
+        slack.section(
+          '```\n' +
+            'Column  Bold    Italic\n' +
+            '------  ------  ------\n' +
+            'Row 1   text    text\n' +
+            'Row 2   normal  code\n' +
+            '```'
+        ),
+      ];
+
+      expect(actual).toStrictEqual(expected);
+    });
+
+    it('should handle tables with empty cells', async () => {
+      const text = `
+| Column A | Column B | Column C |
+| -------- | -------- | -------- |
+| Value 1  |          | Value 3  |
+|          | Value 2  |          |
+`;
+
+      const actual = await markdownToBlocks(text);
+
+      const expected = [
+        slack.section(
+          '```\n' +
+            'Column A  Column B  Column C\n' +
+            '--------  --------  --------\n' +
+            'Value 1             Value 3\n' +
+            '          Value 2\n' +
+            '```'
+        ),
+      ];
+
+      expect(actual).toStrictEqual(expected);
+    });
+
+    it('should handle single column tables', async () => {
+      const text = `
+| Single Column |
+| ------------- |
+| Row 1         |
+| Row 2         |
+| Row 3         |
+`;
+
+      const actual = await markdownToBlocks(text);
+
+      const expected = [
+        slack.section(
+          '```\n' +
+            'Single Column\n' +
+            '-------------\n' +
+            'Row 1\n' +
+            'Row 2\n' +
+            'Row 3\n' +
+            '```'
+        ),
+      ];
+
+      expect(actual).toStrictEqual(expected);
+    });
+
+    it('should handle tables with many columns', async () => {
+      const text = `
+| A | B | C | D | E | F |
+| - | - | - | - | - | - |
+| 1 | 2 | 3 | 4 | 5 | 6 |
+`;
+
+      const actual = await markdownToBlocks(text);
+
+      const expected = [
+        slack.section(
+          '```\n' +
+            'A  B  C  D  E  F\n' +
+            '-  -  -  -  -  -\n' +
+            '1  2  3  4  5  6\n' +
+            '```'
+        ),
+      ];
+
+      expect(actual).toStrictEqual(expected);
+    });
   });
 });

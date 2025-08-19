@@ -9,6 +9,7 @@ import {ListOptions, ParsingOptions} from '../types';
 import {section, divider, header, image} from '../slack';
 import {marked} from 'marked';
 import {XMLParser} from 'fast-xml-parser';
+import {formatSimpleAsciiTable} from '../ascii-table';
 
 type PhrasingToken =
   | marked.Tokens.Link
@@ -38,7 +39,11 @@ function parsePlainText(element: PhrasingToken): string[] {
       return [element.title ?? element.href];
 
     case 'codespan':
+      return [element.text]; // Use text property for plain text, not raw
+
     case 'text':
+      return [element.text]; // Use text property for plain text, not raw
+
     case 'html':
       return [element.raw];
   }
@@ -107,8 +112,9 @@ function parsePhrasingContentToStrings(
   if (element.type === 'image') {
     accumulator.push(element.href ?? element.title ?? element.text ?? 'image');
   } else {
-    const text = parseMrkdwn(element);
-    accumulator.push(text);
+    // For tables, we want plain text without formatting markers
+    const plainText = parsePlainText(element).join('');
+    accumulator.push(plainText);
   }
 }
 
@@ -180,33 +186,7 @@ function parseList(
   return section(contents.join('\n'));
 }
 
-function combineBetweenPipes(texts: String[]): string {
-  return `| ${texts.join(' | ')} |`;
-}
-
-function parseTableRows(rows: marked.Tokens.TableCell[][]): string[] {
-  const parsedRows: string[] = [];
-  rows.forEach((row, index) => {
-    const parsedCells = parseTableRow(row);
-    if (index === 1) {
-      const headerRowArray = new Array(parsedCells.length).fill('---');
-      const headerRow = combineBetweenPipes(headerRowArray);
-      parsedRows.push(headerRow);
-    }
-    parsedRows.push(combineBetweenPipes(parsedCells));
-  });
-  return parsedRows;
-}
-
-function parseTableRow(row: marked.Tokens.TableCell[]): String[] {
-  const parsedCells: String[] = [];
-  row.forEach(cell => {
-    parsedCells.push(parseTableCell(cell));
-  });
-  return parsedCells;
-}
-
-function parseTableCell(cell: marked.Tokens.TableCell): String {
+function parseTableCell(cell: marked.Tokens.TableCell): string {
   const texts = cell.tokens.reduce((accumulator, child) => {
     parsePhrasingContentToStrings(child as PhrasingToken, accumulator);
     return accumulator;
@@ -215,9 +195,13 @@ function parseTableCell(cell: marked.Tokens.TableCell): String {
 }
 
 function parseTable(element: marked.Tokens.Table): SectionBlock {
-  const parsedRows = parseTableRows([element.header, ...element.rows]);
+  const asciiTable = formatSimpleAsciiTable(
+    element.header,
+    element.rows,
+    parseTableCell
+  );
 
-  return section(`\`\`\`\n${parsedRows.join('\n')}\n\`\`\``);
+  return section(`\`\`\`\n${asciiTable}\n\`\`\``);
 }
 
 function parseBlockquote(element: marked.Tokens.Blockquote): KnownBlock[] {
