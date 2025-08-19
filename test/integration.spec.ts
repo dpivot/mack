@@ -153,4 +153,21 @@ A 'mystery' 'neath' the 'moon's' pale light.`),
 
     expect(actual).toStrictEqual(expected);
   });
+
+  it('should handle various special characters without unwanted HTML encoding', async () => {
+    const text = `Testing "quotes" and 'apostrophes' and \`backticks\`
+Forward/slash and other special chars
+"Smart quotes" shouldn't be HTML encoded
+It's important that contractions work`;
+
+    const actual = await markdownToBlocks(text);
+    const expected = [
+      slack.section(`Testing "quotes" and 'apostrophes' and \`backticks\`
+Forward/slash and other special chars
+"Smart quotes" shouldn't be HTML encoded
+It's important that contractions work`),
+    ];
+
+    expect(actual).toStrictEqual(expected);
+  });
 });
